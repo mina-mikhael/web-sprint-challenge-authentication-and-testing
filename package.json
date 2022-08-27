@@ -7,7 +7,8 @@
     "server": "nodemon index.js",
     "migrate": "knex migrate:latest",
     "rollback": "knex migrate:rollback",
-    "test": "cross-env NODE_ENV=testing jest --verbose --runInBand --silent"
+    "resetdb": "npm run rollback && npm run migrate",
+    "test": "cross-env NODE_ENV=testing jest --verbose --runInBand --silent --watchAll"
   },
   "repository": {
     "type": "git",
