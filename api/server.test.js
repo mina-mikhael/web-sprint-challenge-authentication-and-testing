@@ -1,7 +1,10 @@
 // Write your tests here
+///// ==== Imports =====
+
 const server = require("../api/server");
 const request = require("supertest");
 const db = require("../data/dbConfig");
+///// ==== variables declaration =====
 
 const user0 = {
   username: "user0",
@@ -20,6 +23,11 @@ const userMissingPassword = {
   username: "userX",
   password: "",
 };
+
+const invalidToken =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWJqZWN0IjoxLCJ1c2VybmFtZSI6InN1Ynplcm8iLCJpYXQiOjE2NjE2Mzk0NzIsImV4cCI6MTY2MTcyNTg3Mn0.U2xXQH6yhMTrWFIGBKGfw_NhchqvikUNt6Eysu5uIp5";
+
+///// ==== tests begining =====
 
 test("sanity", () => {
   expect(true).toBe(true);
@@ -94,5 +102,32 @@ describe("AUTH END POINT", () => {
       expect(result.body).toMatchObject({ message: "username and password required" });
       expect(result.body).not.toHaveProperty("username");
     });
+  });
+});
+
+describe("JOKES RESTRICTED END POINT", () => {
+  test("can retrieve jokes if a valid token received", async () => {
+    const loginRes = await request(server).post("/api/auth/login").send(user0);
+    const token = loginRes.body.token;
+    const result = await request(server).get("/api/jokes").set("authorization", token);
+    expect(result.status).toBe(200);
+    expect(result.body).toBeTruthy();
+    expect(result.body).toHaveLength(3);
+    expect(result.body[0]).toHaveProperty("id" && "joke");
+  });
+  test("block access to jokes if no token received", async () => {
+    const loginRes = await request(server).post("/api/auth/login").send(user1);
+    const token = loginRes.body.token || "";
+    const result = await request(server).get("/api/jokes").set("authorization", token);
+    expect(result.status).toBe(401);
+    expect(result.body).toMatchObject({ message: "token required" });
+    expect(result.body[0] || result.body).not.toHaveProperty("id" && "joke");
+  });
+  test("block access to jokes if invalid token received", async () => {
+    const token = invalidToken;
+    const result = await request(server).get("/api/jokes").set("authorization", token);
+    expect(result.status).toBe(401);
+    expect(result.body).toMatchObject({ message: "token invalid" });
+    expect(result.body[0] || result.body).not.toHaveProperty("id" && "joke");
   });
 });
